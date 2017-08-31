@@ -136,11 +136,54 @@ class ImagePage extends React.Component {
           source={this.props.source}
           style={{
             backgroundColor: "black",
-            resizeMode: "center",
+            resizeMode: "contain",
             width: 1024,
             height: 768
           }}
         />
+        {this.props.upperText &&
+          <View
+            style={{
+              backgroundColor: "rgba(0,0,0,0.5)",
+              position: "absolute",
+              top: 0,
+              right: 0,
+              left: 0,
+              height: 100
+            }}
+          >
+            <Text
+              style={{
+                color: "white",
+                textAlign: "center",
+                fontSize: 72
+              }}
+            >
+              {this.props.upperText}
+            </Text>
+          </View>}
+
+        {this.props.lowerText &&
+          <View
+            style={{
+              backgroundColor: "rgba(0,0,0,0.5)",
+              position: "absolute",
+              bottom: 0,
+              right: 0,
+              left: 0,
+              height: 100
+            }}
+          >
+            <Text
+              style={{
+                color: "white",
+                textAlign: "center",
+                fontSize: 72
+              }}
+            >
+              {this.props.lowerText}
+            </Text>
+          </View>}
       </View>
     );
   }
@@ -152,16 +195,21 @@ class CharacterScene extends React.Component {
     return (
       <TouchableWithoutFeedback
         onPress={() => {
-          this.setState({ playing: true });
+          if (this.props.tapToPlay) {
+            this.setState({ playing: true });
+          }
         }}
       >
         <View style={{ flex: 1, borderWidth: 3, backgroundColor: "black" }}>
           <Video
-            onPlaybackStatusUpdate={st => {
-              console.log("yeah", st);
+            callback={status => {
+              if (status.positionMillis > 2600) {
+                this._playbackObject && this._playbackObject.pauseAsync();
+              }
             }}
-            ref={o => {
-              debugger;
+            source={require("./phone-right.mov")}
+            ref={playbackObject => {
+              this._playbackObject = playbackObject;
             }}
             progressUpdateIntervalMillis={30}
             style={{
@@ -172,12 +220,11 @@ class CharacterScene extends React.Component {
               height: 580
             }}
             rate={1.0}
-            volume={1.0}
+            volume={0}
             muted={true}
             shouldPlay={this.state.playing}
             isLooping
             resizeMode="contain"
-            source={require("./phone-right.mov")}
           />
           <View
             style={{
@@ -217,42 +264,50 @@ class CharacterScene extends React.Component {
             />
             <View style={{ flex: 8, backgroundColor: "transparent" }} />
           </View>
-          <View
-            style={{
-              position: "absolute",
-              left: this.props.hasRN
-                ? this.props.jsSays ? 275 : this.props.nativeSays ? 620 : 445
-                : 320,
-              bottom: 140,
-              height: 100,
-              width: 100,
-              backgroundColor: "white",
-              transform: [{ rotate: "45deg" }]
-            }}
-          />
-          <View
-            style={{
-              borderRadius: 20,
-              position: "absolute",
-              bottom: 50,
-              right: 50,
-              left: 50,
-              height: 150,
-              padding: 30,
-              backgroundColor: "white"
-            }}
-          >
-            <Text
+          {(this.props.jsSays ||
+            this.props.rnSays ||
+            this.props.nativeSays) && [
+            <View
+              key="carat"
               style={{
-                color: "#333",
-                fontSize: 33,
-                backgroundColor: "transparent",
-                textAlign: "center"
+                position: "absolute",
+                left: this.props.hasRN
+                  ? this.props.jsSays ? 275 : this.props.nativeSays ? 620 : 445
+                  : 320,
+                bottom: 140,
+                height: 100,
+                width: 100,
+                backgroundColor: "white",
+                transform: [{ rotate: "45deg" }]
+              }}
+            />,
+            <View
+              key="text"
+              style={{
+                borderRadius: 20,
+                position: "absolute",
+                bottom: 50,
+                right: 50,
+                left: 50,
+                height: 150,
+                padding: 30,
+                backgroundColor: "white"
               }}
             >
-              {this.props.jsSays || this.props.rnSays || this.props.nativeSays}
-            </Text>
-          </View>
+              <Text
+                style={{
+                  color: "#333",
+                  fontSize: 33,
+                  backgroundColor: "transparent",
+                  textAlign: "center"
+                }}
+              >
+                {this.props.jsSays ||
+                  this.props.rnSays ||
+                  this.props.nativeSays}
+              </Text>
+            </View>
+          ]}
         </View>
       </TouchableWithoutFeedback>
     );
@@ -274,7 +329,7 @@ class PhoneCharacterPage extends React.Component {
       <Video
         source={require("./photo-viewer-demo.mov")}
         rate={1.0}
-        volume={1.0}
+        volume={0}
         muted={true}
         resizeMode="cover"
         shouldPlay
@@ -291,7 +346,7 @@ class VideoPage extends React.Component {
       <Video
         source={require("./photo-viewer-demo.mov")}
         rate={1.0}
-        volume={1.0}
+        volume={0}
         muted={true}
         resizeMode="cover"
         shouldPlay
@@ -418,6 +473,10 @@ const TITLE_SIZE = 48;
 class PhotoViewerPage extends React.Component {
   render() {
     const { onPhotoOpen } = this.props;
+    const photos = MAIN_PHOTOS.map(p => ({
+      ...p,
+      key: this.props.text + p.key
+    }));
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
         <Text
@@ -436,11 +495,11 @@ class PhotoViewerPage extends React.Component {
             alignItems: "center"
           }}
         >
-          {MAIN_PHOTOS.map(photo =>
+          {photos.map(photo =>
             <TouchableWithoutFeedback
               key={photo.key}
               onPress={() => {
-                onPhotoOpen(MAIN_PHOTOS, photo.key);
+                onPhotoOpen(photos, photo.key);
               }}
             >
               <View
@@ -500,11 +559,6 @@ class Preso extends React.Component {
         renderContent={({ onPhotoOpen }) =>
           <PagerScrollView
             items={[
-              <CharacterScene
-                hasRN
-                jsSays="Create a view with position and flexbox.."
-              />,
-
               <IntroPage title="Practical hacks for delightful interactions" />,
               <TitlePage title="Beautiful apps often rely on ugly hacks" />,
               <PhotoViewerPage
@@ -530,7 +584,7 @@ class Preso extends React.Component {
               <TitlePage title="Hack 1. Animate on the UI thread" />,
               <ImagePage
                 source={require("./firewin.png")}
-                text="useNativeDriver"
+                upperText="useNativeDriver"
               />,
               <CodePage code="Animated.timing(..., {..., useNativeDriver: true})..." />,
               <CharacterScene jsSays="Please create a view with opacity 0" />,
@@ -539,7 +593,7 @@ class Preso extends React.Component {
               <CharacterScene nativeSays="No problem!" />,
 
               <TitlePage title="Works for opacity and transforms" />,
-              <TitlePage title="Doesn't support flexbox, position, or resizeMode" />,
+              <TitlePage title="Doesn't support flexbox, position, or Image resizeMode" />,
 
               <RNCharacterPage text="RN thread (or shadow thread) does layout logic and other work" />,
 
@@ -558,7 +612,7 @@ class Preso extends React.Component {
 
               <CharacterScene
                 hasRN
-                jsSays="Ok. Scale the photo up by 247% on an ease over the next 500ms."
+                jsSays="Instead, scale the photo up by 247% on an ease over the next 500ms."
               />,
               <PhotoViewerPage
                 onPhotoOpen={onPhotoOpen}
@@ -572,14 +626,58 @@ class Preso extends React.Component {
               <TitlePage title="Hack 1. Animate on the UI thread" />,
               <TitlePage title="Verdict?" />,
               <TitlePage title="Verdict: Yes, hack it!" />,
+
+              <CharacterScene hasRN tapToPlay />,
+              <TitlePage title="Gesture Responder System, PanResponder" />,
+
+              <CharacterScene
+                hasRN
+                startPosition={7000}
+                nativeSays="A tap has started"
+              />,
+              <CharacterScene
+                hasRN
+                startPosition={7000}
+                jsSays="Ok, I'll keep track of this"
+              />,
+              <CharacterScene
+                hasRN
+                startPosition={7000}
+                jsSays="Translate the photo down by 1px. Now translate by 2px.."
+              />,
+
               <TitlePage title="2. Work around interaction lifecycle" />,
+
+              <CharacterScene
+                hasRN
+                startPosition={7000}
+                jsSays="In the next 4 frames, animate the photo down by 8px"
+              />,
+
               <TitlePage title="Verdict?" />,
-              <TitlePage title="Verdict: No, probably not a good hack!" />,
+              <TitlePage title="Verdict: Not generally reccomended." />,
               <TitlePage title="2. Work around interaction lifecycle" />,
+              <TitlePage title="Start slower work like measurement before touch is released" />,
               <TitlePage title="3. Abuse ScrollView" />,
+
+              <PhotoViewerPage
+                onPhotoOpen={onPhotoOpen}
+                text="View > Image for cropping behavior"
+              />,
+              <CharacterScene
+                hasRN
+                startPosition={7000}
+                jsSays="Translate the photo down by 1px. Now translate by 2px.."
+              />,
+
               <TitlePage title="Verdict?" />,
               <TitlePage title="Verdict: Yes, hack it!" />,
-              <TitlePage title="Have no shame" />,
+              <ImagePage source={require("./shame.jpg")} lowerText="Shame?" />,
+              <ImagePage
+                source={require("./fire.jpg")}
+                lowerText="Be proud of your hacks!"
+              />,
+              <TitlePage title="This was live-hacked" />,
               <TitlePage title="Today you can hack around threading and interaction timing" />,
               <TitlePage title="The future is bright, these hacks are temporary" />,
               <IntroPage title="Practical hacks for delightful interactions" />
