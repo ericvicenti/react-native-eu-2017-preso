@@ -114,7 +114,31 @@ if (inlineImageMeasurements && openImageMeasurements) {
 }
 `;
 
+const scrollEventSnippet = `
+
+class ScrollEffects extends Component {
+  scrollY = new Animated.Value(0);
+  render() {
+    return (
+      <ScrollView
+        onScroll={Animated.event([
+          {nativeEvent: {contentOffset: {y: this.scrollY}}}
+        ], {useNativeDriver: true})}
+        scrollEventThrottle={1}>
+        <Animated.View style={{
+          transform: [
+            {translateY: this.scrollY}
+          ]
+        }} />
+      </ScrollView>
+    );
+  }
+}
+
+`;
+
 module.exports = {
+  scrollEventSnippet,
   transformSnippet,
   transformMathSnippet
 };

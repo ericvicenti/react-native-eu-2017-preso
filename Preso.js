@@ -212,7 +212,7 @@ class CharacterScene extends React.Component {
           <Video
             callback={status => {
               if (status.positionMillis > 2600) {
-                this._playbackObject && this._playbackObject.pauseAsync();
+                //this._playbackObject && this._playbackObject.pauseAsync();
               }
             }}
             source={require("./phone-right.mov")}
@@ -282,7 +282,7 @@ class CharacterScene extends React.Component {
                 position: "absolute",
                 left: this.props.hasRN
                   ? this.props.jsSays ? 275 : this.props.nativeSays ? 620 : 445
-                  : 320,
+                  : this.props.nativeSays ? 560 : 320,
                 bottom: 140,
                 height: 100,
                 width: 100,
@@ -527,57 +527,37 @@ class PhotoViewerPage extends React.Component {
       key: this.props.text + p.key
     }));
     return (
-      <ScrollView pagingEnabled>
-        <View style={{ ...SCREEN_SIZE, justifyContent: "center" }}>
-          <Text
-            style={{
-              textAlign: "center",
-              marginBottom: 100,
-              fontSize: TITLE_SIZE
-            }}
-          >
-            {this.props.text}
-          </Text>
-        </View>
-        <View style={{ ...SCREEN_SIZE, justifyContent: "center" }}>
-          <View
-            style={{
-              flexDirection: "row",
-              justifyContent: "center",
-              alignItems: "center"
-            }}
-          >
-            {photos.map(photo => (
-              <TouchableWithoutFeedback
-                key={photo.key}
-                onPress={() => {
-                  onPhotoOpen(photos, photo.key);
+      <View style={{ flex: 1, justifyContent: "center" }}>
+        <View
+          style={{
+            flexDirection: "row",
+            justifyContent: "center",
+            alignItems: "center"
+          }}
+        >
+          {photos.map(photo => (
+            <TouchableWithoutFeedback
+              key={photo.key}
+              onPress={() => {
+                onPhotoOpen(photos, photo.key);
+              }}
+            >
+              <View
+                style={{
+                  width: 200,
+                  height: 200,
+                  margin: 20
                 }}
               >
-                <View
-                  style={{
-                    width: 200,
-                    height: 200,
-                    margin: 20
-                  }}
-                >
-                  <PhotoViewer.Photo
-                    style={{ width: 200, height: 200 }}
-                    photo={photo}
-                  />
-                </View>
-              </TouchableWithoutFeedback>
-            ))}
-          </View>
+                <PhotoViewer.Photo
+                  style={{ width: 200, height: 200 }}
+                  photo={photo}
+                />
+              </View>
+            </TouchableWithoutFeedback>
+          ))}
         </View>
-        <View style={{ ...SCREEN_SIZE, justifyContent: "center" }}>
-          <Image
-            source={require("./yodawg.jpg")}
-            style={{ ...SCREEN_SIZE }}
-            resizeMode="contain"
-          />
-        </View>
-      </ScrollView>
+      </View>
     );
   }
 }
@@ -610,7 +590,11 @@ class MultiMessagePage extends React.Component {
 //   ]}
 // />,
 
-import { transformSnippet, transformMathSnippet } from "./PresoSnippets.js";
+import {
+  transformSnippet,
+  scrollEventSnippet,
+  transformMathSnippet
+} from "./PresoSnippets.js";
 
 class BuildInPage extends React.Component {
   render() {
@@ -621,6 +605,29 @@ class BuildInPage extends React.Component {
     );
   }
 }
+// class ScrollEffects extends React.Component {
+//   scrollY = new Animated.Value(0);
+//   render() {
+//     return (
+//       <Animated.ScrollView
+//         style={{ flex: 1 }}
+//         onScroll={Animated.event(
+//           [{ nativeEvent: { contentOffset: { y: this.scrollY } } }],
+//           { useNativeDriver: true }
+//         )}
+//         scrollEventThrottle={1}
+//       >
+//         <Animated.View
+//           style={{
+//             transforms: [{ translateY: this.scrollY }]
+//           }}
+//         >
+//           <Text>Woa</Text>
+//         </Animated.View>
+//       </Animated.ScrollView>
+//     );
+//   }
+// }
 
 class Preso extends React.Component {
   render() {
@@ -635,9 +642,9 @@ class Preso extends React.Component {
                 text="Beautiful UI often relies on ugly hacks"
               />,
               <TitlePage title="Three practical hacks you can use today" />,
-              <BuildInPage
-                title="Our toolbox"
-                items={["Animated", "Responder Event System"]}
+              <ImagePage source={require("./yodawg.jpg")} />,
+              <MultiMessagePage
+                messages={["Our toolbox", "Animated", "Responder Event System"]}
               />,
               <TitlePage title="Our toolbox: Animated and responder systems" />,
               <TitlePage title="Who's doing the work?" />,
@@ -653,15 +660,15 @@ class Preso extends React.Component {
               <CharacterScene jsSays="Then, change opacity to 0.01. Then change opacity to 0.02..." />,
 
               <TitlePage title="Hack 1. Animate on the UI thread" />,
-              <ImagePage
-                source={require("./firewin.png")}
-                upperText="useNativeDriver"
-              />,
-              <CodePage code="Animated.timing(..., {..., useNativeDriver: true})..." />,
               <CharacterScene jsSays="Please create a view with opacity 0" />,
               <CharacterScene nativeSays="Alright.. its up!" />,
               <CharacterScene jsSays="Now, animate the opacity to 1 on a linear curve for 500ms." />,
               <CharacterScene nativeSays="No problem!" />,
+              <ImagePage
+                source={require("./firewin.png")}
+                upperText="useNativeDriver"
+              />,
+              <CodePage code="Animated.timing(v, {useNativeDriver: true,.." />,
 
               <TitlePage title="Works for opacity and transforms" />,
               <TitlePage title="Doesn't support flexbox, position, or Image resizeMode" />,
@@ -685,18 +692,17 @@ class Preso extends React.Component {
                 hasRN
                 jsSays="Instead, scale the photo up by 247% on an ease over the next 500ms."
               />,
+              <CharacterScene hasRN nativeSays="No problem!" />,
+
               <PhotoViewerPage
                 onPhotoOpen={onPhotoOpen}
-                text="Gymnastics for cropping"
+                text="Manual layout is tedious and fragile"
               />,
 
-              <CharacterScene hasRN nativeSays="No problem!" />,
               <ScrollingCodePage code={transformSnippet} />,
               <ScrollingCodePage code={transformMathSnippet} />,
 
               <TitlePage title="Hack 1. Animate on the UI thread" />,
-              <TitlePage title="Verdict?" />,
-              <TitlePage title="Verdict: Yes, hack it!" />,
 
               <CharacterScene hasRN tapToPlay />,
               <TitlePage title="Gesture Responder System, PanResponder" />,
@@ -722,33 +728,54 @@ class Preso extends React.Component {
               <CharacterScene
                 hasRN
                 startPosition={7000}
-                jsSays="In the next 4 frames, animate the photo down by 8px"
+                jsSays="Over the next 4 frames, animate the photo down by 8px"
               />,
 
-              <TitlePage title="Verdict?" />,
-              <TitlePage title="Verdict: Not generally reccomended." />,
+              <TitlePage title="Allows for smooth motion.. with noticible latency" />,
               <TitlePage title="2. Work around interaction lifecycle" />,
-              <TitlePage title="Start slower work like measurement before touch is released" />,
-              <TitlePage title="3. Abuse ScrollView" />,
+              <TitlePage title="Start animation work on touch-down" />,
+              <TitlePage title="2. Work around interaction lifecycle" />,
 
               <PhotoViewerPage
                 onPhotoOpen={onPhotoOpen}
-                text="View > Image for cropping behavior"
+                text="How does this work"
               />,
               <CharacterScene
                 hasRN
                 startPosition={7000}
-                jsSays="Translate the photo down by 1px. Now translate by 2px.."
+                jsSays="As the user swipes, change the styles in this way."
+              />,
+              <ImagePage
+                source={require("./rninteractable.png")}
+                upperText="RN Interactable"
               />,
 
-              <TitlePage title="Verdict?" />,
-              <TitlePage title="Verdict: Yes, hack it!" />,
+              <ImagePage
+                source={require("./rngesturehandler.png")}
+                upperText="RN Gesture Handler"
+              />,
+
+              <TitlePage title="What's the hack?" />,
+              <ImagePage source={require("./yodawg.jpg")} />,
+              <TitlePage title="3. Abuse ScrollView" />,
+
+              <CharacterScene
+                hasRN
+                startPosition={7000}
+                jsSays="As the scroll position changes, transform in this way.."
+              />,
+              // <ScrollEffects />,
+              <ScrollingCodePage code={scrollEventSnippet} />,
+
+              <PhotoViewerPage
+                onPhotoOpen={onPhotoOpen}
+                text="Result of these hacks"
+              />,
               <ImagePage source={require("./shame.jpg")} lowerText="Shame?" />,
               <ImagePage
                 source={require("./fire.jpg")}
                 lowerText="Be proud of your hacks!"
               />,
-              <TitlePage title="This was live-hacked" />,
               <TitlePage title="Today you can hack around threading and interaction timing" />,
               <TitlePage title="The future is bright, these hacks are temporary" />,
               <IntroPage title="Practical hacks for delightful interactions" />
