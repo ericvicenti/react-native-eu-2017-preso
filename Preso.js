@@ -12,6 +12,7 @@ import ReactNative, {
   BackHandler,
   Platform,
   StatusBar,
+  AsyncStorage,
   TouchableOpacity,
   TouchableWithoutFeedback
 } from "react-native";
@@ -20,17 +21,17 @@ import { Video } from "expo";
 import { atomOneLight } from "react-syntax-highlighter/dist/styles";
 import SyntaxHighlighter from "react-native-syntax-highlighter";
 
-const CodeTag = ({ children }) =>
+const CodeTag = ({ children }) => (
   <View
     style={{
       flex: 1,
-      backgroundColor: "white",
       alignItems: "center",
       justifyContent: "center"
     }}
   >
     {children}
-  </View>;
+  </View>
+);
 
 class CodePage extends React.Component {
   render() {
@@ -41,7 +42,7 @@ class CodePage extends React.Component {
           PreTag={CodeTag}
           fontSize={34}
           language="jsx"
-          style={{ ...atomOneLight, borderWidth: 0 }}
+          style={atomOneLight}
         >
           {this.props.code}
         </SyntaxHighlighter>
@@ -141,7 +142,7 @@ class ImagePage extends React.Component {
             height: 768
           }}
         />
-        {this.props.upperText &&
+        {this.props.upperText && (
           <View
             style={{
               backgroundColor: "rgba(0,0,0,0.5)",
@@ -161,9 +162,10 @@ class ImagePage extends React.Component {
             >
               {this.props.upperText}
             </Text>
-          </View>}
+          </View>
+        )}
 
-        {this.props.lowerText &&
+        {this.props.lowerText && (
           <View
             style={{
               backgroundColor: "rgba(0,0,0,0.5)",
@@ -183,7 +185,8 @@ class ImagePage extends React.Component {
             >
               {this.props.lowerText}
             </Text>
-          </View>}
+          </View>
+        )}
       </View>
     );
   }
@@ -191,6 +194,11 @@ class ImagePage extends React.Component {
 
 class CharacterScene extends React.Component {
   state = { playing: false };
+  componentDidMount() {
+    if (this.props.startPosition && this._playbackObject) {
+      this._playbackObject.setPositionAsync(this.props.startPosition);
+    }
+  }
   render() {
     return (
       <TouchableWithoutFeedback
@@ -245,7 +253,7 @@ class CharacterScene extends React.Component {
               source={require("./js-gal.png")}
               resizeMode="contain"
             />
-            {this.props.hasRN &&
+            {this.props.hasRN && (
               <Image
                 style={{
                   flex: 5,
@@ -253,7 +261,8 @@ class CharacterScene extends React.Component {
                 }}
                 source={require("./rn-dude.png")}
                 resizeMode="contain"
-              />}
+              />
+            )}
             <Image
               style={{
                 flex: 7,
@@ -314,14 +323,17 @@ class CharacterScene extends React.Component {
   }
 }
 
-const JSCharacterPage = ({ text }) =>
-  <CharacterPage source={require("./js-gal.png")} text={text} />;
+const JSCharacterPage = ({ text }) => (
+  <CharacterPage source={require("./js-gal.png")} text={text} />
+);
 
-const NativeCharacterPage = ({ text }) =>
-  <CharacterPage source={require("./native-gal.png")} text={text} />;
+const NativeCharacterPage = ({ text }) => (
+  <CharacterPage source={require("./native-gal.png")} text={text} />
+);
 
-const RNCharacterPage = ({ text }) =>
-  <CharacterPage source={require("./rn-dude.png")} text={text} />;
+const RNCharacterPage = ({ text }) => (
+  <CharacterPage source={require("./rn-dude.png")} text={text} />
+);
 
 class PhoneCharacterPage extends React.Component {
   render() {
@@ -357,8 +369,26 @@ class VideoPage extends React.Component {
   }
 }
 
+const SCREEN_WIDTH = Dimensions.get("window").width;
+const SCREEN_HEIGHT = Dimensions.get("window").height;
+
+let lastLocation = null;
+
 class PagerScrollView extends React.Component {
-  state = { width: new Animated.Value(0), height: new Animated.Value(0) };
+  state = {
+    width: new Animated.Value(SCREEN_WIDTH),
+    height: new Animated.Value(SCREEN_HEIGHT)
+  };
+  _sv: ?ScrollView = null;
+  componentDidMount() {
+    AsyncStorage.getItem("page_index", (err, data) => {
+      if (data) {
+        setTimeout(() => {
+          this._sv.scrollResponderScrollTo({ x: SCREEN_WIDTH * Number(data) });
+        }, 10);
+      }
+    });
+  }
   render() {
     const { width, height } = this.state;
     return (
@@ -369,15 +399,30 @@ class PagerScrollView extends React.Component {
         ])}
       >
         <ScrollView
+          ref={sv => {
+            this._sv = sv;
+          }}
+          onScroll={e => {
+            const { x } = e.nativeEvent.contentOffset;
+            console.log("actually, ", x);
+            if (x % SCREEN_WIDTH === 0) {
+              const newLocation = x / SCREEN_WIDTH;
+              if (newLocation !== lastLocation) {
+                lastLocation = newLocation;
+                AsyncStorage.setItem("page_index", "" + newLocation);
+              }
+            }
+          }}
+          scrollEventThrottle={64}
           showsHorizontalScrollIndicator={false}
           horizontal
           pagingEnabled
         >
-          {this.props.items.map((item, index) =>
+          {this.props.items.map((item, index) => (
             <Animated.View key={index} style={{ width, height }}>
               {item}
             </Animated.View>
-          )}
+          ))}
         </ScrollView>
       </Animated.View>
     );
@@ -469,6 +514,10 @@ const MAIN_PHOTOS = [
 ];
 
 const TITLE_SIZE = 48;
+const SCREEN_SIZE = {
+  width: SCREEN_WIDTH,
+  height: SCREEN_HEIGHT
+};
 
 class PhotoViewerPage extends React.Component {
   render() {
@@ -478,46 +527,57 @@ class PhotoViewerPage extends React.Component {
       key: this.props.text + p.key
     }));
     return (
-      <View style={{ flex: 1, justifyContent: "center" }}>
-        <Text
-          style={{
-            textAlign: "center",
-            marginBottom: 100,
-            fontSize: TITLE_SIZE
-          }}
-        >
-          {this.props.text}
-        </Text>
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "center",
-            alignItems: "center"
-          }}
-        >
-          {photos.map(photo =>
-            <TouchableWithoutFeedback
-              key={photo.key}
-              onPress={() => {
-                onPhotoOpen(photos, photo.key);
-              }}
-            >
-              <View
-                style={{
-                  width: 200,
-                  height: 200,
-                  margin: 20
+      <ScrollView pagingEnabled>
+        <View style={{ ...SCREEN_SIZE, justifyContent: "center" }}>
+          <Text
+            style={{
+              textAlign: "center",
+              marginBottom: 100,
+              fontSize: TITLE_SIZE
+            }}
+          >
+            {this.props.text}
+          </Text>
+        </View>
+        <View style={{ ...SCREEN_SIZE, justifyContent: "center" }}>
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "center",
+              alignItems: "center"
+            }}
+          >
+            {photos.map(photo => (
+              <TouchableWithoutFeedback
+                key={photo.key}
+                onPress={() => {
+                  onPhotoOpen(photos, photo.key);
                 }}
               >
-                <PhotoViewer.Photo
-                  style={{ width: 200, height: 200 }}
-                  photo={photo}
-                />
-              </View>
-            </TouchableWithoutFeedback>
-          )}
+                <View
+                  style={{
+                    width: 200,
+                    height: 200,
+                    margin: 20
+                  }}
+                >
+                  <PhotoViewer.Photo
+                    style={{ width: 200, height: 200 }}
+                    photo={photo}
+                  />
+                </View>
+              </TouchableWithoutFeedback>
+            ))}
+          </View>
         </View>
-      </View>
+        <View style={{ ...SCREEN_SIZE, justifyContent: "center" }}>
+          <Image
+            source={require("./yodawg.jpg")}
+            style={{ ...SCREEN_SIZE }}
+            resizeMode="contain"
+          />
+        </View>
+      </ScrollView>
     );
   }
 }
@@ -552,22 +612,33 @@ class MultiMessagePage extends React.Component {
 
 import { transformSnippet, transformMathSnippet } from "./PresoSnippets.js";
 
+class BuildInPage extends React.Component {
+  render() {
+    return (
+      <ScrollView pagingEnabled>
+        <View style={{ ...SCREEN_SIZE }} />
+      </ScrollView>
+    );
+  }
+}
+
 class Preso extends React.Component {
   render() {
     return (
       <PhotoViewer
-        renderContent={({ onPhotoOpen }) =>
+        renderContent={({ onPhotoOpen }) => (
           <PagerScrollView
             items={[
               <IntroPage title="Practical hacks for delightful interactions" />,
-              <TitlePage title="Beautiful apps often rely on ugly hacks" />,
               <PhotoViewerPage
                 onPhotoOpen={onPhotoOpen}
-                text="Hacking on a Photo Viewer.."
+                text="Beautiful UI often relies on ugly hacks"
               />,
-              //<VideoPage />,
               <TitlePage title="Three practical hacks you can use today" />,
-
+              <BuildInPage
+                title="Our toolbox"
+                items={["Animated", "Responder Event System"]}
+              />,
               <TitlePage title="Our toolbox: Animated and responder systems" />,
               <TitlePage title="Who's doing the work?" />,
 
@@ -682,7 +753,8 @@ class Preso extends React.Component {
               <TitlePage title="The future is bright, these hacks are temporary" />,
               <IntroPage title="Practical hacks for delightful interactions" />
             ]}
-          />}
+          />
+        )}
       />
     );
   }
